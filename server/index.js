@@ -5,6 +5,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nanoid } from 'nanoid';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +20,12 @@ app.use(morgan('dev'));
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'properties.json');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SEED_FILE = path.join(__dirname, '..', 'public', 'properties.json');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Detroit2026!';
 
 async function ensureDb() {
   await fs.ensureDir(DATA_DIR);
@@ -34,11 +41,25 @@ async function ensureDb() {
       console.log('Empty database created');
     }
   }
+  // Ensure users file exists (create default admin user if absent)
+  const usersExists = await fs.pathExists(USERS_FILE);
+  if (!usersExists) {
+    const passwordHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
+    const users = [ { username: ADMIN_USER, passwordHash } ];
+    await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+    console.log('Created default admin user');
+  }
 }
 
 async function readDb() {
   await ensureDb();
   const raw = await fs.readFile(DB_FILE, 'utf8');
+  return JSON.parse(raw || '[]');
+}
+
+async function readUsers() {
+  await ensureDb();
+  const raw = await fs.readFile(USERS_FILE, 'utf8');
   return JSON.parse(raw || '[]');
 }
 
@@ -72,7 +93,38 @@ app.get('/api/properties/:id', async (req, res) => {
 });
 
 // POST create
-app.post('/api/properties', async (req, res) => {
+const requireAuth = (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Missing token' });
+  const token = auth.split(' ')[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Login
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) return res.status(400).json({ error: 'Missing credentials' });
+    const users = await readUsers();
+    const user = users.find(u => u.username === username);
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    const ok = bcrypt.compareSync(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ token, username: user.username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.post('/api/properties', requireAuth, async (req, res) => {
   try {
     const data = await readDb();
     const incoming = req.body || {};
@@ -88,7 +140,7 @@ app.post('/api/properties', async (req, res) => {
 });
 
 // PUT update
-app.put('/api/properties/:id', async (req, res) => {
+app.put('/api/properties/:id', requireAuth, async (req, res) => {
   try {
     const data = await readDb();
     const idx = data.findIndex(p => p.id === req.params.id);
@@ -104,7 +156,7 @@ app.put('/api/properties/:id', async (req, res) => {
 });
 
 // DELETE
-app.delete('/api/properties/:id', async (req, res) => {
+app.delete('/api/properties/:id', requireAuth, async (req, res) => {
   try {
     const data = await readDb();
     const filtered = data.filter(p => p.id !== req.params.id);

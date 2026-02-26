@@ -323,18 +323,44 @@ const InteractiveMap = ({ properties, onPropertyClick }) => {
 };
 
 const AdminLogin = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Frontend-only security check (Temporary until backend is added)
-    // Change "Detroit2026!" to whatever you want your password to be
-    if (password === 'Detroit2026!') {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!res.ok) {
+        // If API rejects, show message (401 will be invalid credentials)
+        if (res.status === 401) setError('Invalid username or password');
+        else setError('Login failed (server)');
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      // Save token for future requests
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       onLogin();
-    } else {
-      setError(true);
-      setPassword('');
+    } catch (err) {
+      // If API is unreachable, fall back to the previous client-only password (temporary)
+      console.warn('API login failed, falling back to client-side password check', err);
+      if (password === 'Detroit2026!') {
+        onLogin();
+      } else {
+        setError('Login failed (offline)');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -345,22 +371,31 @@ const AdminLogin = ({ onLogin }) => {
           <Lock className="w-8 h-8 text-slate-700" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900">Admin Access</h2>
-        <p className="text-slate-500 text-sm mt-1">Please enter the management password.</p>
+        <p className="text-slate-500 text-sm mt-1">Sign in with your admin credentials.</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter Password" 
-            className={`w-full p-3 border rounded-xl focus:ring-2 focus:outline-none transition-colors ${error ? 'border-red-500 focus:ring-red-200' : 'border-slate-300 focus:ring-blue-500'}`}
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            className="w-full p-3 border rounded-xl focus:ring-2 focus:outline-none transition-colors border-slate-300 focus:ring-blue-500"
             autoFocus
           />
-          {error && <p className="text-red-500 text-sm mt-1">Incorrect password. Try again.</p>}
         </div>
-        <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">
-          Login
+        <div>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className={`w-full p-3 border rounded-xl focus:ring-2 focus:outline-none transition-colors ${error ? 'border-red-500 focus:ring-red-200' : 'border-slate-300 focus:ring-blue-500'}`}
+          />
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+        </div>
+        <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">
+          {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
     </div>
@@ -378,17 +413,23 @@ const AdminDashboard = ({ properties, setProperties }) => {
     const save = async () => {
       try {
         if (editingId) {
+          const headers = { 'Content-Type': 'application/json' };
+          const token = localStorage.getItem('token');
+          if (token) headers.Authorization = `Bearer ${token}`;
           const res = await fetch(`${API_BASE}/api/properties/${editingId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(formData),
           });
           const updated = await res.json();
           setProperties(properties.map(p => p.id === editingId ? updated : p));
         } else {
+          const headers = { 'Content-Type': 'application/json' };
+          const token = localStorage.getItem('token');
+          if (token) headers.Authorization = `Bearer ${token}`;
           const res = await fetch(`${API_BASE}/api/properties`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(formData),
           });
           const created = await res.json();
@@ -413,7 +454,10 @@ const AdminDashboard = ({ properties, setProperties }) => {
     if (!confirm('Are you sure you want to delete this property?')) return;
     const del = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/properties/${id}`, { method: 'DELETE' });
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch(`${API_BASE}/api/properties/${id}`, { method: 'DELETE', headers });
         if (res.ok || res.status === 204) {
           setProperties(properties.filter(p => p.id !== id));
         } else {

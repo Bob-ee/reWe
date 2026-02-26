@@ -14,4 +14,8 @@ services:
       - "5000:5000"
     volumes:
       - ./server/data:/app/data
+    environment:
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Detroit2026!}
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret}
 
