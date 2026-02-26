@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  portfolio:
+    build: .
+    container_name: rental-portfolio
+    restart: unless-stopped
+    ports:
+      - "8080:80" # Maps port 8080 on your Pi to port 80 in the container
+  api:
+    build: ./server
+    container_name: rental-portfolio-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server/data:/app/data
+

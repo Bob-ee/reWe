@@ -1,0 +1,47 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "$PI_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$PI_HOST" >> ~/.ssh/known_hosts
+        env:
+          PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
+          PI_HOST: ${{ secrets.PI_HOST }}
+
+      - name: Push code to Pi and restart
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} 'bash -s' << 'EOF'
+            set -e
+            cd ${{ secrets.PI_REPO_PATH }} || exit 1
+            git fetch origin main
+            git reset --hard origin/main
+            docker-compose build --pull
+            docker-compose up -d --remove-orphans
+            docker system prune -af || true
+          EOF
+        env:
+          PI_USER: ${{ secrets.PI_USER }}
+          PI_HOST: ${{ secrets.PI_HOST }}
+          PI_REPO_PATH: ${{ secrets.PI_REPO_PATH }}
+
+      - name: Cleanup
+        run: rm -f ~/.ssh/deploy_key
+
+# Required secrets:
+# PI_SSH_KEY - private SSH key for the deploy user (no passphrase recommended for automation)
+# PI_HOST - hostname or IP address of your Raspberry Pi
+# PI_USER - SSH user to connect as
+# PI_REPO_PATH - absolute path on the Pi where the repository is cloned (e.g. /home/pi/portfolio)
