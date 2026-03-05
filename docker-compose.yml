@@ -4,17 +4,26 @@ services:
     build: .
     container_name: rental-portfolio
     restart: unless-stopped
-    ports:
-      - "8080:80" # Maps port 8080 on your Pi to port 80 in the container
+    # Do not bind to host ports by default so an existing nginx instance on the Pi
+    # (including one running in a container) can reverse-proxy to this service.
+    # If you need to publish the frontend directly to the host for testing,
+    # add a docker-compose.override.yml locally that maps 8080:80.
+    expose:
+      - "80"
   api:
     build: ./server
     container_name: rental-portfolio-api
     restart: unless-stopped
-    ports:
-      - "5000:5000"
+    # Expose internally; host nginx (or host network) should proxy to this container
+    expose:
+      - "5000"
     volumes:
       - ./server/data:/app/data
     environment:
+networks:
+  default:
+    name: portfolio_webnet
+    driver: bridge
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Detroit2026!}
       - JWT_SECRET=${JWT_SECRET:-change-this-secret}

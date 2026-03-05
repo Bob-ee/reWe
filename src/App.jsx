@@ -10,15 +10,19 @@ const Header = ({ setView }) => {
     <header className="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('grid')}>
-            <img src="/uhd_logo.svg" alt="Urban Housing Detroit" className="h-14 w-auto brightness-0 invert" />
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('grid')}>
+            <img src="/uhd_logo.svg" alt="Urban Housing Detroit logo" className="h-14 w-auto brightness-0 invert" />
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span className="text-white font-extrabold text-lg">Urban Housing Detroit</span>
+              <span className="text-slate-300 text-sm">Metro Detroit Rentals</span>
+            </div>
             <span className="sr-only">Urban Housing Detroit</span>
           </div>
           
           <nav className="hidden md:flex space-x-8 items-center">
             <button onClick={() => setView('grid')} className="text-gray-300 hover:text-white transition-colors">Properties</button>
             <button onClick={() => setView('map')} className="text-gray-300 hover:text-white transition-colors">Map View</button>
-            <a href="https://app.stessa.com/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">Tenant Portal</a>
+            <a href="https://resident.stessa.com/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">Tenant Portal</a>
             <a href="#about" className="text-gray-300 hover:text-white transition-colors">About Us</a>
             <a href="mailto:contact@example.com" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
               Contact
