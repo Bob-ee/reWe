@@ -1,30 +1,32 @@
 version: '3.8'
+
 services:
   portfolio:
     build: .
     container_name: rental-portfolio
     restart: unless-stopped
-    # Do not bind to host ports by default so an existing nginx instance on the Pi
-    # (including one running in a container) can reverse-proxy to this service.
-    # If you need to publish the frontend directly to the host for testing,
-    # add a docker-compose.override.yml locally that maps 8080:80.
     expose:
       - "80"
+    networks:
+      - rewebsite_network
+
   api:
     build: ./server
     container_name: rental-portfolio-api
     restart: unless-stopped
-    # Expose internally; host nginx (or host network) should proxy to this container
     expose:
       - "5000"
     volumes:
-      - ./server/data:/app/data
+      # Directing persistent data to your external drive
+      - /media/backup/reWebsite/server/data:/app/data
     environment:
-networks:
-  default:
-    name: portfolio_webnet
-    driver: bridge
       - ADMIN_USER=${ADMIN_USER:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Detroit2026!}
-      - JWT_SECRET=${JWT_SECRET:-change-this-secret}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - rewebsite_network
 
+networks:
+  # Using the external network so NPM (nginxproxymanager-app-1) can see these containers
+  rewebsite_network:
+    external: true
