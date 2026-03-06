@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, MapPin, BedDouble, Bath, ExternalLink, CheckCircle, Info, Menu, X, ChevronRight, Check, Settings, Plus, Trash2, Edit, Lock } from 'lucide-react';
 
-// Build an absolute API base so the frontend can reach the backend regardless of origin.
-// The API runs on port 5000 in the Docker setup by default.
-const API_BASE = `${window.location.protocol}//${window.location.hostname}:5000`;
+// Use a relative API base so requests go to the same origin (works with nginx proxy or
+// when serving the frontend from the same host). Keep it simple: `/api`.
+const API_BASE = '/api';
 
 // --- COMPONENTS ---
 
