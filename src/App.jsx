@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, MapPin, BedDouble, Bath, ExternalLink, CheckCircle, Info, Menu, X, ChevronRight, Check, Settings, Plus, Trash2, Edit, Lock } from 'lucide-react';
 
+// Build an absolute API base so the frontend can reach the backend regardless of origin.
+// The API runs on port 5000 in the Docker setup by default.
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:5000`;
+
 // --- COMPONENTS ---
 
 const Header = ({ setView }) => {
@@ -663,7 +667,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   // API will run on port 5000 in docker-compose on the Pi. Build an absolute base so
   // the frontend can reach it regardless of Vite or nginx origin.
-  const API_BASE = `${window.location.protocol}//${window.location.hostname}:5000`;
+  // (moved to module scope)
 
   useEffect(() => {
     // Try the API first, fall back to embedded properties.json (for static demo)
