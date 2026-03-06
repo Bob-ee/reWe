@@ -341,7 +341,7 @@ const AdminLogin = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/login`, {
+  const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -424,7 +424,7 @@ const AdminDashboard = ({ properties, setProperties }) => {
           const headers = { 'Content-Type': 'application/json' };
           const token = localStorage.getItem('token');
           if (token) headers.Authorization = `Bearer ${token}`;
-          const res = await fetch(`${API_BASE}/api/properties/${editingId}`, {
+          const res = await fetch(`${API_BASE}/properties/${editingId}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify(formData),
@@ -435,7 +435,7 @@ const AdminDashboard = ({ properties, setProperties }) => {
           const headers = { 'Content-Type': 'application/json' };
           const token = localStorage.getItem('token');
           if (token) headers.Authorization = `Bearer ${token}`;
-          const res = await fetch(`${API_BASE}/api/properties`, {
+          const res = await fetch(`${API_BASE}/properties`, {
             method: 'POST',
             headers,
             body: JSON.stringify(formData),
@@ -465,7 +465,7 @@ const AdminDashboard = ({ properties, setProperties }) => {
         const headers = {};
         const token = localStorage.getItem('token');
         if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch(`${API_BASE}/api/properties/${id}`, { method: 'DELETE', headers });
+  const res = await fetch(`${API_BASE}/properties/${id}`, { method: 'DELETE', headers });
         if (res.ok || res.status === 204) {
           setProperties(properties.filter(p => p.id !== id));
         } else {
@@ -671,7 +671,7 @@ export default function App() {
 
   useEffect(() => {
     // Try the API first, fall back to embedded properties.json (for static demo)
-    fetch(`${API_BASE}/api/properties`)
+  fetch(`${API_BASE}/properties`)
       .then(res => {
         if (!res.ok) throw new Error('API not available');
         return res.json();
